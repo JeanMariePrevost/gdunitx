@@ -1,0 +1,19 @@
+# Godot 4+ specific ignores
+.godot/
+/android/
+.editorconfig
+
+/addons/
+
+
+*.svg
+*.import
+*.uid
+*.godot
+*.old
+GdUnitXs.csproj
+GdUnitXs.sln
+test_scene.tscn
+test/Sequencing/Sequence_Tests.cs
+GdUnitX.sln
+main.tscn
