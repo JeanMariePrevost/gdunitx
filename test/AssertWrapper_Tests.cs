@@ -15,10 +15,76 @@ public partial class AssertWrapper_Tests {
      * CORE
      * ------------------------------------------------- */
 
-    [TestCase] public void Equal_Pass() => Equal(5, 5); // Fails?
     [TestCase]
-    public void Equal_Fail() =>
+    public void Equal_Int_Pass() => Equal(5, 5);
+
+    [TestCase]
+    public void Equal_Int_Fail() =>
         GD.AssertThrown(() => Equal(5, 6)).IsInstanceOf<Exception>();
+
+    [TestCase]
+    public void Equal_Float_Pass() => Equal(1.5f, 1.5f);
+
+    [TestCase]
+    public void Equal_Float_Fail() =>
+        GD.AssertThrown(() => Equal(1.5f, 1.6f)).IsInstanceOf<Exception>();
+
+    [TestCase]
+    public void Equal_String_Pass() => Equal("hello", "hello");
+
+    [TestCase]
+    public void Equal_String_Fail() =>
+        GD.AssertThrown(() => Equal("hello", "world")).IsInstanceOf<Exception>();
+
+    [TestCase]
+    public void Equal_Reference_Pass() {
+        var obj = new object();
+        Equal(obj, obj);
+    }
+
+    [TestCase]
+    public void Equal_Reference_Fail() {
+        object a = new object();
+        object b = new object();
+        GD.AssertThrown(() => Equal(a, b)).IsInstanceOf<Exception>();
+    }
+
+    [TestCase]
+    public void Equal_IdenticalCollections_Fail() {
+        // Because these are "Equal" by ref
+        var list1 = new List<int> { 1, 2, 3 };
+        var list2 = new List<int> { 1, 2, 3 };
+        GD.AssertThrown(() => Equal(list1, list2)).IsInstanceOf<Exception>();
+    }
+
+    [TestCase] public void Equal_Null_Null_Pass() => Equal<object?>(null, null);
+    [TestCase]
+    public void NotEqual_Null_Null_Fail() =>
+        GD.AssertThrown(() => NotEqual<object?>(null, null)).IsInstanceOf<Exception>();
+
+    [TestCase]
+    public void Equal_Obj_Null_Fail() =>
+        GD.AssertThrown(() => Equal(new object(), null)).IsInstanceOf<Exception>();
+
+    [TestCase]
+    public void Equal_Null_Obj_Fail() =>
+        GD.AssertThrown(() => Equal(null, new object())).IsInstanceOf<Exception>();
+
+    private record Point(int X, int Y);
+
+    [TestCase]
+    public void Equal_Record_Pass() {
+        var a = new Point(1, 2);
+        var b = new Point(1, 2);
+        Equal(a, b);  // ✅ works, records implement value-based Equals
+    }
+
+    [TestCase]
+    public void Equal_Record_Fail() {
+        var a = new Point(1, 2);
+        var b = new Point(1, 3);
+        GD.AssertThrown(() => Equal(a, b)).IsInstanceOf<Exception>();
+    }
 
     [TestCase] public void NotEqual_Pass() => NotEqual(5, 6);
     [TestCase]
@@ -89,7 +155,7 @@ public partial class AssertWrapper_Tests {
      * FLOATING‑POINT
      * ------------------------------------------------- */
 
-    [TestCase] public void ApproxEqual_Float_Pass() => ApproxEqual(1f, 1.000001f);
+    [TestCase] public void ApproxEqual_Float_Pass() => ApproxEqual(1f, 1.0000001f);
     [TestCase]
     public void ApproxEqual_Float_Fail() =>
         GD.AssertThrown(() => ApproxEqual(1f, 1.01f)).IsInstanceOf<Exception>();
@@ -99,15 +165,63 @@ public partial class AssertWrapper_Tests {
     public void NotApproxEqual_Float_Fail() =>
         GD.AssertThrown(() => NotApproxEqual(1f, 1.000001f)).IsInstanceOf<Exception>();
 
-    [TestCase] public void ApproxEqual_Double_Pass() => ApproxEqual(1d, 1.0 + 1e-14);
+    [TestCase]
+    public void ApproxEqual_Float_CustomDelta_Pass() {
+        // Difference is 0.005, delta is 0.01 → should pass
+        ApproxEqual(1f, 1.005f, delta: 0.01f);
+    }
+
+    [TestCase]
+    public void ApproxEqual_Float_CustomDelta_Fail() {
+        // Difference is 0.02, delta is 0.01 → should fail
+        GD.AssertThrown(() => ApproxEqual(1f, 1.02f, delta: 0.01f)).IsInstanceOf<Exception>();
+    }
+
+    [TestCase]
+    public void NotApproxEqual_Float_CustomDelta_Pass() {
+        // Difference is 0.02, delta is 0.01 → NotEqual should pass
+        NotApproxEqual(1f, 1.02f, delta: 0.01f);
+    }
+
+    [TestCase]
+    public void NotApproxEqual_Float_CustomDelta_Fail() {
+        // Difference is 0.005, delta is 0.01 → NotEqual should fail
+        GD.AssertThrown(() => NotApproxEqual(1f, 1.005f, delta: 0.01f)).IsInstanceOf<Exception>();
+    }
+
+    [TestCase] public void ApproxEqual_Double_Pass() => ApproxEqual(1d, 1.000000000000001d);
     [TestCase]
     public void ApproxEqual_Double_Fail() =>
         GD.AssertThrown(() => ApproxEqual(1d, 1.1)).IsInstanceOf<Exception>();
 
-    [TestCase] public void NotApproxEqual_Double_Pass() => NotApproxEqual(1d, 1.1);
+    [TestCase] public void NotApproxEqual_Double_Pass() => NotApproxEqual(1d, 1.1d);
     [TestCase]
     public void NotApproxEqual_Double_Fail() =>
-        GD.AssertThrown(() => NotApproxEqual(1d, 1.0 + 1e-14)).IsInstanceOf<Exception>();
+        GD.AssertThrown(() => NotApproxEqual(1d, 1.000000000000001d)).IsInstanceOf<Exception>();
+
+    [TestCase]
+    public void ApproxEqual_Double_CustomDelta_Pass() {
+        // Difference is 1e-10, delta is 1e-8 → should pass
+        ApproxEqual(1d, 1.0000000001d, delta: 1e-8);
+    }
+
+    [TestCase]
+    public void ApproxEqual_Double_CustomDelta_Fail() {
+        // Difference is 1e-7, delta is 1e-8 → should fail
+        GD.AssertThrown(() => ApproxEqual(1d, 1.0000001d, delta: 1e-8)).IsInstanceOf<Exception>();
+    }
+
+    [TestCase]
+    public void NotApproxEqual_Double_CustomDelta_Pass() {
+        // Difference is 1e-7, delta is 1e-8 → NotEqual should pass
+        NotApproxEqual(1d, 1.0000001d, delta: 1e-8);
+    }
+
+    [TestCase]
+    public void NotApproxEqual_Double_CustomDelta_Fail() {
+        // Difference is 1e-10, delta is 1e-8 → NotEqual should fail
+        GD.AssertThrown(() => NotApproxEqual(1d, 1.0000000001d, delta: 1e-8)).IsInstanceOf<Exception>();
+    }
 
     /* -------------------------------------------------
      * BOOLEAN
