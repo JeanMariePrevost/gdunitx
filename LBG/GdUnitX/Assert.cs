@@ -46,13 +46,21 @@ public static class Assert {
     /// <summary>Asserts that two values are equal.</summary>
     /// <remarks> Use <see cref="ApproxEqual"/> for floating-point comparisons. </remarks>
     public static void Equal<T>(T expected, T actual) {
-        GD.AssertThat(actual).IsEqual(expected);
+        // HACK: This is a workaround to circumvent the fact that GDUnit4's AssertThat<T> cannot handle primitives...
+        // e.g. Assert.Equal(5, 5) will fail, because it cannot resolve to AssertThat(int, int),
+        // instead resolving to AssertThat<int>(int, int) which does _not_ work in GdUnit4.
+        // It works, but we lose granularity in failure messages.
+        GD.AssertThat(expected?.Equals(actual) ?? actual is null).IsTrue();
     }
 
     /// <summary>Asserts that two values are not equal.</summary>
     /// <remarks> Use <see cref="NotApproxEqual"/> for floating-point comparisons. </remarks>
     public static void NotEqual<T>(T notExpected, T actual) {
-        GD.AssertThat(actual).IsNotEqual(notExpected);
+        // HACK: This is a workaround to circumvent the fact that GDUnit4's AssertThat<T> cannot handle primitives...
+        // e.g. Assert.Equal(5, 5) will fail, because it cannot resolve to AssertThat(int, int),
+        // instead resolving to AssertThat<int>(int, int) which does _not_ work in GdUnit4.
+        // It works, but we lose granularity in failure messages.
+        GD.AssertThat(notExpected?.Equals(actual) ?? actual is null).IsFalse();
     }
 
     /// <summary>Asserts that a value is null.</summary>
@@ -61,7 +69,7 @@ public static class Assert {
     }
 
     /// <summary>Asserts that a value is not null.</summary>
-    public static void NotNull(object? value) {
+    public static void NotNull(object value) {
         GD.AssertThat(value).IsNotNull();
     }
 
